@@ -6,13 +6,12 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-/**
- * The Room database. One shared instance for the whole app (singleton).
- */
-@Database(entities = {PantryItem.class}, version = 1, exportSchema = false)
+@Database(entities = {PantryItem.class, Recipe.class, RecipeIngredient.class},
+        version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract PantryItemDao pantryItemDao();
+    public abstract RecipeDao recipeDao();
 
     private static AppDatabase instance;
 
