@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Pantry List screen: shows every ingredient stored in the database.
- */
+ */// Commit 2: Wired add, edit, delete via Intents for marking
 public class MainActivity extends AppCompatActivity
         implements PantryAdapter.OnItemClickListener {
 
