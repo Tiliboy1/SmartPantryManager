@@ -1,11 +1,13 @@
 package com.example.smartpantrymanager;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -47,11 +49,8 @@ public class MainActivity extends AppCompatActivity
         recyclerView.setAdapter(adapter);
 
         FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
-        fabAdd.setOnClickListener(v -> {
-            // TEMPORARY test: adds a sample item. Replaced by the Add screen in Step 5.
-            db.pantryItemDao().insert(new PantryItem("Tomato", 2, "pcs", ""));
-            loadItems();
-        });
+        fabAdd.setOnClickListener(v ->
+                startActivity(new Intent(this, AddEditActivity.class)));
     }
 
     @Override
@@ -68,13 +67,22 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onItemClick(PantryItem item) {
-        Toast.makeText(this, "Edit " + item.getName() + " (coming in Step 5)",
-                Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, AddEditActivity.class);
+        intent.putExtra(AddEditActivity.EXTRA_ITEM_ID, item.getId());
+        startActivity(intent);
     }
 
     @Override
     public void onItemLongClick(PantryItem item) {
-        Toast.makeText(this, "Delete " + item.getName() + " (coming in Step 5)",
-                Toast.LENGTH_SHORT).show();
+        new AlertDialog.Builder(this)
+                .setTitle("Delete ingredient")
+                .setMessage("Remove " + item.getName() + " from your pantry?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    db.pantryItemDao().delete(item); // Delete
+                    Toast.makeText(this, "Ingredient deleted", Toast.LENGTH_SHORT).show();
+                    loadItems();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }
