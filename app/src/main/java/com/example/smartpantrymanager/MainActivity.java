@@ -1,6 +1,7 @@
 package com.example.smartpantrymanager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
@@ -17,11 +18,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * Pantry List screen: shows every ingredient stored in the database.
- */// Commit 2: Wired add, edit, delete via Intents for marking
+/** Pantry List screen: shows every ingredient stored in the database. */
 public class MainActivity extends AppCompatActivity
         implements PantryAdapter.OnItemClickListener {
 
@@ -41,6 +44,7 @@ public class MainActivity extends AppCompatActivity
         });
 
         db = AppDatabase.getInstance(this);
+        RecipeSeeder.seedIfEmpty(db); // loads the recipes on first run only
         tvEmpty = findViewById(R.id.tvEmpty);
 
         RecyclerView recyclerView = findViewById(R.id.recyclerPantry);
@@ -51,18 +55,46 @@ public class MainActivity extends AppCompatActivity
         FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
         fabAdd.setOnClickListener(v ->
                 startActivity(new Intent(this, AddEditActivity.class)));
+
+        BottomNavHelper.setup(this, BottomNavHelper.NAV_PANTRY);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadItems(); // refresh the list every time the screen comes back
+        loadItems();
     }
 
     private void loadItems() {
         List<PantryItem> items = db.pantryItemDao().getAllItems();
         adapter.setItems(items);
         tvEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+        showExpiryAlert(items);
+    }
+
+    /** Uses the Settings toggle: warns about items expiring within 3 days. */
+    private void showExpiryAlert(List<PantryItem> items) {
+        SharedPreferences prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        if (!prefs.getBoolean("expiry_alerts", true)) return;
+        int count = 0;
+        for (PantryItem item : items) {
+            if (isExpiringSoon(item.getExpiryDate())) count++;
+        }
+        if (count > 0) {
+            Toast.makeText(this, count + " item(s) expiring within 3 days",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private boolean isExpiringSoon(String expiry) {
+        if (expiry == null || expiry.isEmpty()) return false;
+        try {
+            Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(expiry);
+            long days = (date.getTime() - System.currentTimeMillis()) / (24L * 60 * 60 * 1000);
+            return days <= 3;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 
     @Override
@@ -78,7 +110,7 @@ public class MainActivity extends AppCompatActivity
                 .setTitle("Delete ingredient")
                 .setMessage("Remove " + item.getName() + " from your pantry?")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    db.pantryItemDao().delete(item); // Delete
+                    db.pantryItemDao().delete(item);
                     Toast.makeText(this, "Ingredient deleted", Toast.LENGTH_SHORT).show();
                     loadItems();
                 })
